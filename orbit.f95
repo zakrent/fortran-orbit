@@ -18,6 +18,19 @@ module model_vars
         real, dimension(2) :: cur_vel
 
         real, dimension(n, 2) :: pos
+contains
+        function calacc (pos) result(acc)
+                implicit none
+
+                real, dimension(2) :: acc
+
+                real, dimension(2) :: pos
+                real, dimension(2) :: dir
+                real :: r
+
+                r = hypot(pos(1), pos(2))
+                acc = -G*M*pos/((r)**3)
+        end function calacc
 end module model_vars
 
 program orbit
@@ -68,18 +81,26 @@ subroutine step
 
         implicit none
 
-        real, dimension(2) :: dir
-        real :: r
-        real :: t
+        real, dimension(2) :: k_v1, k_v2, k_v3, k_v4
+        real, dimension(2) :: k_r1, k_r2, k_r3, k_r4
 
-        t = t + dt
-        cur_pos = cur_pos + dt*cur_vel 
-        
-        r = hypot(cur_pos(1), cur_pos(2))
-        dir = cur_pos / r
-        cur_vel = cur_vel-dt*dir*G*M/r**2
+        k_v1 = calacc(cur_pos)
+        k_r1 = cur_vel
+
+        k_v2 = calacc(cur_pos+k_r1*dt/2)
+        k_r2 = cur_vel+k_v1*dt/2
+
+        k_v3 = calacc(cur_pos+k_r2*dt/2)
+        k_r3 = cur_vel+k_v2*dt/2
+
+        k_v4 = calacc(cur_pos+k_r3*dt)
+        k_r4 = cur_vel+k_r3*dt
+
+        cur_pos = cur_pos + dt/6*(k_r1+2*k_r2+2*k_r3+k_r4)
+        cur_vel = cur_vel + dt/6*(k_v1+2*k_v2+2*k_v3+k_v4)
 
 end subroutine step
+
 
 subroutine save_data
         use params
